@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: Opaque
+data:
+  POSTGRES_PASSWORD: cG9zdGdyZXM= # encode value for postgres
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: psql
+spec:
+  containers:
+    - name: psql
+      image: postgres:15.7
+      env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: POSTGRES_PASSWORD
+      command:
+        - /bin/bash
+        - -c
+        - |
+          sleep 7200

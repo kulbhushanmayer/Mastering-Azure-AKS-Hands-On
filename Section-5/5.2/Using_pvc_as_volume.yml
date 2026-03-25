@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: participate
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: participate
+  template:
+    metadata:
+      labels:
+        app: participate
+    spec:
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+      containers:
+      - name: participate
+        image: ghcr.io/kul-samples/thinknyx-participate-app:latest
+        ports:
+        - containerPort: 5000
+          name: participate
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+          requests:
+            memory: "75Mi"
+            cpu: "75m"
+        envFrom:
+        - configMapRef:
+            name: redis-connection-details
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/luckydraw-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: submissions
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: submissions
+  template:
+    metadata:
+      labels:
+        app: submissions
+    spec:
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+      containers:
+      - name: submissions
+        image: ghcr.io/kul-samples/thinknyx-submissions-app:latest
+        ports:
+        - containerPort: 5000
+          name: submissions
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+          requests:
+            memory: "75Mi"
+            cpu: "75m"
+        envFrom:
+        - configMapRef:
+            name: postgres-connection-details
+        - secretRef:
+            name: postgres-credentials
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/luckydraw-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pickwinner
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pickwinner
+  template:
+    metadata:
+      labels:
+        app: pickwinner
+    spec:
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+      containers:
+      - name: pickwinner
+        image: ghcr.io/kul-samples/thinknyx-pick-winner-app:latest
+        ports:
+        - containerPort: 5000
+          name: pickwinner
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+          requests:
+            memory: "75Mi"
+            cpu: "75m"
+        envFrom:
+        - configMapRef:
+            name: postgres-connection-details
+        - secretRef:
+            name: postgres-credentials
+        - configMapRef:
+            name: pickwinner-config
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/luckydraw-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sync-redis-to-postgres
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sync-redis-to-postgres
+  template:
+    metadata:
+      labels:
+        app: sync-redis-to-postgres
+    spec:
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs-pvc
+      containers:
+      - name: sync-redis-to-postgres
+        image: ghcr.io/kul-samples/thinknyx-redis-to-postgres-worker-app:latest
+        resources:
+          limits:
+            memory: "150Mi"
+            cpu: "150m"
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+        envFrom:
+        - configMapRef:
+            name: redis-connection-details
+        - configMapRef:
+            name: postgres-connection-details
+        - secretRef:
+            name: postgres-credentials
+        env:
+        - name: REDIS_POLL_INTERVAL
+          value: "5" # Poll Redis every 5 seconds
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/luckydraw-app

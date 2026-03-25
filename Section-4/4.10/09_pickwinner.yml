@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pickwinner
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pickwinner
+  template:
+    metadata:
+      labels:
+        app: pickwinner
+    spec:
+      containers:
+      - name: pickwinner
+        image: ghcr.io/kul-samples/thinknyx-pick-winner-app:latest
+        ports:
+        - containerPort: 5000
+          name: pickwinner
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+          requests:
+            memory: "75Mi"
+            cpu: "75m"
+        envFrom:
+        - configMapRef:
+            name: postgres-connection-details
+        - secretRef:
+            name: postgres-credentials
+        - configMapRef:
+            name: pickwinner-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pickwinner
+  namespace: luckydraw
+spec:
+  selector:
+    app: pickwinner
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    name: pickwinner
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: luckydraw-ingress
+  namespace: luckydraw
+spec:
+  ingressClassName: azure-application-gateway
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pickwinner
+            port:
+              number: 80
+      - path: /participate
+        pathType: Prefix
+        backend:
+          service:
+            name: participate
+            port:
+              number: 80
+      - path: /submissions
+        pathType: Prefix
+        backend:
+          service:
+            name: submissions
+            port:
+              number: 80

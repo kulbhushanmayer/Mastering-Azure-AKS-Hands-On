@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: luckydraw
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  serviceName: postgres
+  replicas: 1
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: default
+      resources:
+        requests:
+          storage: 1Gi
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      initContainers:
+      - name: init-replica
+        image: postgres:15.7
+        env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_DB
+          value: postgres
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: config
+          mountPath: /sql
+          readOnly: true
+        command:
+        - /bin/bash
+        - /sql/init-replica.sh
+      containers:
+      - name: postgres
+        image: postgres:15.7
+        ports:
+        - containerPort: 5432
+          name: postgres-port
+        env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        envFrom:
+        - secretRef:
+            name: postgres-credentials
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: config
+          mountPath: /etc/postgresql
+          readOnly: true
+        command:
+        - bash
+        - -c
+        - |
+          exec docker-entrypoint.sh postgres \
+            -c config_file=/etc/postgresql/postgresql.conf \
+            -c hba_file=/etc/postgresql/pg_hba.conf
+      volumes:
+      - name: config
+        configMap:
+          name: postgres-replication

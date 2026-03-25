@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: participate
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: participate
+  template:
+    metadata:
+      labels:
+        app: participate
+    spec:
+      containers:
+      - name: participate
+        image: ghcr.io/kul-samples/thinknyx-participate-app:latest
+        ports:
+        - containerPort: 5000
+          name: participate
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+          requests:
+            memory: "75Mi"
+            cpu: "75m"
+        envFrom:
+        - configMapRef:
+            name: redis-connection-details
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: participate
+  namespace: luckydraw
+spec:
+  selector:
+    app: participate
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    name: participate
+  type: LoadBalancer

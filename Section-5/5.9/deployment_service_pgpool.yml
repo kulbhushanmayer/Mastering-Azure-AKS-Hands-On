@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgpool
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgpool
+  template:
+    metadata:
+      labels:
+        app: pgpool
+    spec:
+      containers:
+        - name: pgpool
+          image: mrgreen007/pgpool:4.6.4
+          env:
+            # Backend nodes
+            - name: PGPOOL_BACKEND_NODES
+              value: "0:postgres-0.postgres:5432,1:postgres-1.postgres:5432,2:postgres-2.postgres:5432"
+
+            # PostgreSQL connection
+            - name: PGPOOL_POSTGRES_USERNAME
+              value: postgres
+            - name: PGPOOL_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+
+            # Pgpool administrator user
+            - name: PGPOOL_ADMIN_USERNAME
+              value: pgpooladmin
+            - name: PGPOOL_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: PGPOOL_ADMIN_PASSWORD
+
+            # Streaming Replication check user
+            - name: PGPOOL_SR_CHECK_USER
+              value: postgres
+            - name: PGPOOL_SR_CHECK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+
+            # PostgreSQL health check user
+            - name: PGPOOL_HEALTH_CHECK_USER
+              value: postgres
+            - name: PGPOOL_HEALTH_CHECK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+
+          ports:
+            - containerPort: 5432
+          resources:
+            limits:
+              cpu: 500m
+              memory: 500Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgpool
+  namespace: luckydraw
+spec:
+  selector:
+    app: pgpool
+  ports:
+    - port: 5432
+    

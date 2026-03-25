@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: participate
+  namespace: luckydraw
+spec:
+  selector:
+    app: participate
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    name: participate
+    nodePort: 30001
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: submissions
+  namespace: luckydraw
+spec:
+  selector:
+    app: submissions
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    name: submissions
+    nodePort: 30002
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pickwinner
+  namespace: luckydraw
+spec:
+  selector:
+    app: pickwinner
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    name: pickwinner
+    nodePort: 30003
+  type: LoadBalancer

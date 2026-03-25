@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: submissions
+  namespace: luckydraw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: submissions
+  template:
+    metadata:
+      labels:
+        app: submissions
+    spec:
+      containers:
+      - name: submissions
+        image: ghcr.io/kul-samples/thinknyx-submissions-app:latest
+        ports:
+        - containerPort: 5000
+          name: submissions
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "100m"
+          requests:
+            memory: "75Mi"
+            cpu: "75m"
+        envFrom:
+        - configMapRef:
+            name: postgres-connection-details
+        - secretRef:
+            name: postgres-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: submissions
+  namespace: luckydraw
+spec:
+  selector:
+    app: submissions
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+    name: submissions
+  type: LoadBalancer
